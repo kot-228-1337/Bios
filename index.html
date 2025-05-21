@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Bio - Профиль с эффектом перелистывания</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+  /* Общие стили */
+  body, html {
+    margin: 0; padding: 0;
+    height: 100%;
+    overflow-x: hidden;
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #7b2ff7, #000000);
+    color: #fff;
+  }
+
+  #app {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    perspective: 1500px; /* для 3D эффекта */
+    overflow: hidden;
+  }
+
+  .page {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(30, 0, 60, 0.85);
+    box-shadow: 0 0 40px rgba(123, 47, 247, 0.7);
+    border-radius: 20px;
+    padding: 40px 50px;
+    box-sizing: border-box;
+    text-align: center;
+    top: 0; left: 0;
+    backface-visibility: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between; /* чтобы футер и подсказка были внизу */
+  }
+
+  /* Страница главного меню */
+  #mainPage {
+    z-index: 2;
+    animation: fadeInUp 1.8s ease forwards;
+  }
+
+  /* Текст "дыхания" */
+  .breathing-text {
+    font-size: 1rem;
+    color: #d9b3ffcc;
+    margin-top: 15px;
+    animation: breathing 4s ease-in-out infinite;
+    user-select: none;
+  }
+
+  /* Заголовки */
+  h1, h2 {
+    margin: 0 0 20px 0;
+    text-shadow: 0 0 15px #cda2ff;
+  }
+  h1 {
+    font-size: 3rem;
+    color: #cda2ff;
+    animation: bounce 3s infinite;
+  }
+  h2 {
+    font-size: 2.2rem;
+    color: #d9b3ff;
+  }
+
+  /* Юзернеймы */
+  .usernames {
+    font-size: 1.4rem;
+    margin-bottom: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideInLeft 1.5s ease forwards;
+  }
+
+  .usernames span {
+    background: #cda2ff;
+    color: #1a0033;
+    padding: 10px 15px;
+    border-radius: 12px;
+    font-weight: 700;
+    box-shadow: 0 0 12px #cda2ff;
+    user-select: none;
+    transition: transform 0.3s ease;
+  }
+
+  .usernames span:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px #d9b3ff;
+  }
+
+  /* Описание */
+  .description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 30px;
+    animation: pulse 3s infinite;
+    color: #d9b3ff;
+  }
+
+  /* Кнопки */
+  .btn {
+    position: relative;
+    display: inline-block;
+    background: linear-gradient(45deg, #cda2ff, #7b2ff7);
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a0033;
+    border-radius: 30px;
+    cursor: pointer;
+    box-shadow: 0 0 25px #cda2ff;
+    overflow: hidden;
+    animation: colorShift 4s infinite alternate, floatBtn 3s infinite ease-in-out;
+    transition: transform 0.3s ease;
+    user-select: none;
+    margin: 10px;
+  }
+
+  .btn:hover {
+    transform: scale(1.1);
+    box-shadow:
+      0 0 40px #cda2ff,
+      0 0 50px #7b2ff7,
+      0 0 60px #d9b3ff;
+  }
+
+  .btn:active {
+    animation: clickScale 0.3s forwards;
+    box-shadow:
+      0 0 60px #cda2ff,
+      0 0 70px #7b2ff7;
+  }
+
+  /* Кнопка "Связаться" отдельно для копирования */
+  #copyBtn {
+    margin-bottom: 20px;
+  }
+
+  /* Раздел поддержки */
+  #supportPage {
+    background: rgba(40, 10, 80, 0.9);
+    color: #e6ccff;
+    transform: translateX(100%);
+    z-index: 1;
+  }
+
+  #supportPage .card-number {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: 3px;
+    background: #7b2ff7;
+    padding: 15px 20px;
+    border-radius: 15px;
+    box-shadow: 0 0 25px #7b2ff7;
+    user-select: text;
+    margin-bottom: 30px;
+  }
+
+  #supportPage .thank-you {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ff6fff;
+    position: relative;
+    user-select: none;
+  }
+
+  #supportPage .thank-you span.heart {
+    color: #ff2d95;
+    animation: heartBeat 1.5s infinite;
+    display: inline-block;
+    margin: 0 4px;
+    text-shadow: 0 0 8px #ff2d95;
+  }
+
+  #supportPage .thank-you span.heart:nth-child(2) {
+    animation-delay: 0.3s;
+  }
+  #supportPage .thank-you span.heart:nth-child(4) {
+    animation-delay: 0.6s;
+  }
+
+  /* Анимации перехода страниц */
+  .slide-out-left {
+    animation: slideOutLeft 0.6s forwards;
+    z-index: 1 !important;
+  }
+
+  .slide-in-right {
+    animation: slideInRight 0.6s forwards;
+    z-index: 2 !important;
+  }
+
+  .slide-out-right {
+    animation: slideOutRight 0.6s forwards;
+    z-index: 1 !important;
+  }
+
+  .slide-in-left {
+    animation: slideInLeftPage 0.6s forwards;
+    z-index: 2 !important;
+  }
+
+  /* Ключевые кадры */
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes bounce {
+    0%, 100% {transform: translateY(0);}
+    50% {transform: translateY(-15px);}
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-100%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {opacity: 1;}
+    50% {opacity: 0.6;}
+  }
+
+  @keyframes colorShift {
+    0% {
+      background-position: 0% 50%;
+      box-shadow: 0 0 25px #cda2ff;
+    }
+    50% {
+      background-position: 100% 50%;
+      box-shadow: 0 0 40px #7b2ff7;
+    }
+    100% {
+      background-position: 0% 50%;
+      box-shadow: 0 0 25px #cda2ff;
+    }
+  }
+
+  @keyframes floatBtn {
+    0%, 100% {transform: translateY(0);}
+    50% {transform: translateY(-6px);}
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(0.9);
+      opacity: 0.6;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.3;
+    }
+    100% {
+      transform: scale(0.9);
+      opacity: 0.6;
+    }
+  }
+
+  @keyframes clickScale {
+    0% {transform: scale(1);}
+    50% {transform: scale(0.85);}
+    100% {transform: scale(1);}
+  }
+
+  @keyframes heartBeat {
+    0%, 100% {
+      transform: scale(1);
+      text-shadow: 0 0 8px #ff2d95;
+    }
+    50% {
+      transform: scale(1.3);
+      text-shadow: 0 0 20px #ff2d95;
+    }
+  }
+
+  @keyframes slideOutLeft {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(-100vw); opacity: 0; }
+  }
+
+  @keyframes slideInRight {
+    from { transform: translateX(100vw); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100vw); opacity: 0; }
+  }
+
+  @keyframes slideInLeftPage {
+    from { transform: translateX(-100vw); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Эффект дыхания для текста */
+  @keyframes breathing {
+    0%, 100% {opacity: 1;}
+    50% {opacity: 0;}
+  }
+
+  /* Новый стиль для переключателя и сообщения */
+  #toggleContainer {
+    margin: 20px auto;
+    font-size: 1.2rem;
+    color: #d9b3ff;
+    user-select: none;
+  }
+
+  #toggleLabel {
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  #message {
+    margin-top: 15px;
+    font-weight: 700;
+    color: #ff6fff;
+    text-shadow: 0 0 10px #ff6fff;
+  }
+</style>
+</head>
+<body>
+  <div id="app">
+    <!-- Главная страница -->
+    <section id="mainPage" class="page" aria-label="Главное меню">
+      <div>
+        <h1>Bio Tom</h1>
+        <div class="usernames" aria-label="Юзернеймы">
+          <span>@C0d3r_Doxbinov</span>
+          <span>@N1ght_C0d3r</span>
+        </div>
+        <p class="description">
+          Я — кодер, работаю с Python и JavaScript (J.s). Создаю крутые проекты, автоматизирую задачи и люблю писать чистый, эффективный код.
+        </p>
+        <button class="btn" id="copyBtn" aria-label="Связаться с Bio Tom">Связаться</button>
+        <button class="btn" id="supportBtn" aria-label="Перейти к поддержке">Поддержать</button>
+
+        <!-- Новый блок с переключателем -->
+        <div id="toggleContainer">
+          <label id="toggleLabel" for="toggleSwitch">
+            <input type="checkbox" id="toggleSwitch" />
+            тык
+          </label>
+          <div id="message" aria-live="polite" aria-atomic="true" style="display:none;">чо тыкаешь</div>
+        </div>
+      </div>
+
+      <footer>
+        Спасибо за посещение моего профиля!
+      </footer>
+
+      <div class="breathing-text" aria-live="polite" aria-atomic="true">
+        Если нужна помощь — нажми на связь, зайди в телеграм и вставь юзернейм
+      </div>
+    </section>
+
+    <!-- Страница поддержки -->
+    <section id="supportPage" class="page" aria-label="Раздел поддержки">
+      <h2>Поддержать проект</h2>
+      <div class="card-number" tabindex="0" aria-label="Номер карты для поддержки">2204 3101 8921 3682</div>
+      <div class="thank-you" aria-live="polite" aria-atomic="true">
+        Спасибо за поддержку
+        <span class="heart" aria-hidden="true">❤</span>
+        <span class="heart" aria-hidden="true">❤</span>
+        <span class="heart" aria-hidden="true">❤</span>
+      </div>
+      <button class="btn" id="backBtn" aria-label="Вернуться в главное меню">Назад</button>
+    </section>
+  </div>
+
+  <script>
+    // Копирование юзернейма @N1ght_C0d3r
+    const copyBtn = document.getElementById('copyBtn');
+    const usernameToCopy = '@N1ght_C0d3r';
+    const originalText = copyBtn.textContent;
+
+    copyBtn.addEventListener('click', () => {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(usernameToCopy).then(() => {
+          showCopied();
+        }).catch(() => {
+          fallbackCopyText(usernameToCopy);
+        });
+      } else {
+        fallbackCopyText(usernameToCopy);
+      }
+    });
+
+    function fallbackCopyText(text) {
+      const textArea = document.createElement("textarea");
+      textArea.value = text;
+      textArea.style.position = "fixed";
+      textArea.style.top = "-9999px";
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+
+      try {
+        const successful = document.execCommand('copy');
+        if (successful) {
+          showCopied();
+        } else {
+          alert('Не удалось скопировать текст');
+        }
+      } catch (err) {
+        alert('Ошибка копирования');
+      }
+
+      document.body.removeChild(textArea);
+    }
+
+    function showCopied() {
+      copyBtn.textContent = 'Скопировано!';
+      copyBtn.disabled = true;
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.disabled = false;
+      }, 2000);
+    }
+
+    // Переходы между страницами с анимацией перелистывания
+    const supportBtn = document.getElementById('supportBtn');
+    const backBtn = document.getElementById('backBtn');
+    const mainPage = document.getElementById('mainPage');
+    const supportPage = document.getElementById('supportPage');
+
+    supportBtn.addEventListener('click', () => {
+      mainPage.classList.add('slide-out-left');
+      supportPage.classList.add('slide-in-right');
+
+      setTimeout(() => {
+        mainPage.style.visibility = 'hidden';
+        mainPage.classList.remove('slide-out-left');
+        supportPage.style.zIndex = '2';
+      }, 600);
+    });
+
+    backBtn.addEventListener('click', () => {
+      mainPage.style.visibility = 'visible';
+      mainPage.classList.add('slide-in-left');
+      supportPage.classList.add('slide-out-right');
+
+      setTimeout(() => {
+        supportPage.classList.remove('slide-in-right', 'slide-out-right');
+        mainPage.classList.remove('slide-in-left');
+        supportPage.style.zIndex = '1';
+      }, 600);
+    });
+
+    // Новый скрипт для переключателя
+    const toggleSwitch = document.getElementById('toggleSwitch');
+    const message = document.getElementById('message');
+    const toggleContainer = document.getElementById('toggleContainer');
+
+    toggleSwitch.addEventListener('change', () => {
+      if (toggleSwitch.checked) {
+        // Показать сообщение
+        message.style.display = 'block';
+
+        // Через 5 секунд скрыть переключатель и сообщение
+        setTimeout(() => {
+          toggleContainer.style.display = 'none';
+        }, 5000);
+      }
+    });
+  </script>
+</body>
+</html>
+
